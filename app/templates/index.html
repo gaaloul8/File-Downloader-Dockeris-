@@ -1,157 +1,78 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gestionnaire de fichiers</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f9f9f9;
-      margin: 0;
-      padding: 0;
-    }
+    <meta charset="UTF-8">
+    <title>File Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const loader = document.getElementById("loader");
+            loader.style.display = "none";
 
-    header {
-      background-color: #3498db;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
+            const searchInput = document.getElementById("searchInput");
+            const fileRows = document.querySelectorAll(".file-row");
 
-    .logo {
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 30px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-
-    .counter {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      margin-bottom: 20px;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f2f2f2;
-      margin-bottom: 10px;
-      padding: 10px 15px;
-      border-radius: 5px;
-    }
-
-    .file-name {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .download-btn {
-      background-color: #3498db;
-      color: white;
-      padding: 8px 12px;
-      text-decoration: none;
-      border-radius: 5px;
-      transition: background 0.3s;
-    }
-
-    .download-btn:hover {
-      background-color: #2980b9;
-    }
-
-    /* Loader */
-    #loader {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-
-    .spinner {
-      border: 6px solid #f3f3f3;
-      border-top: 6px solid #3498db;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-  </style>
+            searchInput.addEventListener("input", () => {
+                const query = searchInput.value.toLowerCase();
+                fileRows.forEach(row => {
+                    const name = row.dataset.filename.toLowerCase();
+                    row.style.display = name.includes(query) ? "flex" : "none";
+                });
+            });
+        });
+    </script>
 </head>
-<body>
+<body class="bg-gray-100 font-sans p-6">
 
-  <!-- Loading spinner -->
-  <div id="loader">
-    <div class="spinner"></div>
-  </div>
+    <!-- Loader -->
+    <div id="loader" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+    </div>
 
-  <header>
-    <div class="logo">📁 File Downloader</div>
-  </header>
+    <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow-md">
+        <!-- Header avec logo -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="w-10 h-10 object-contain">
+                <h1 class="text-2xl font-bold text-gray-800">Fichiers disponibles ({{ files|length }})</h1>
+            </div>
+            <a href="/api/files" target="_blank" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
+                🔍 API JSON
+            </a>
+        </div>
 
-  <div class="container">
-    <div class="counter">Nombre de fichiers : {{ files|length }}</div>
-    <input type="text" id="searchInput" placeholder="Rechercher un fichier..."/>
+        <input id="searchInput" type="text" placeholder="Rechercher un fichier..." class="w-full mb-4 px-4 py-2 border rounded shadow-sm">
 
-    <ul id="fileList">
-      {% for file in files %}
-        <li>
-          <span class="file-name">{{ file|get_icon }} {{ file }}</span>
-          <a class="download-btn" href="/download/{{ file }}">Télécharger</a>
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
+        {% for file in files %}
+        <div class="file-row flex justify-between items-center bg-gray-50 p-3 mb-2 rounded shadow-sm hover:bg-gray-100 transition" data-filename="{{ file }}">
+            <div class="flex items-center gap-2">
+                {% set ext = file.split('.')[-1].lower() %}
+                {% if ext in ['pdf'] %}
+                    📄
+                {% elif ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                    🖼️
+                {% elif ext in ['zip', 'rar'] %}
+                    🗜️
+                {% elif ext in ['mp3', 'wav'] %}
+                    🎵
+                {% elif ext in ['mp4', 'avi', 'mov'] %}
+                    🎬
+                {% elif ext in ['txt'] %}
+                    📝
+                {% else %}
+                    📦
+                {% endif %}
+                <span>{{ file }}</span>
+            </div>
+            <a href="{{ url_for('main.download_file', filename=file) }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                Télécharger
+            </a>
+        </div>
+        {% endfor %}
 
-  <script>
-    window.addEventListener('load', () => {
-      document.getElementById('loader').style.display = 'none';
-    });
-
-    const searchInput = document.getElementById('searchInput');
-    const fileList = document.getElementById('fileList');
-    const listItems = fileList.getElementsByTagName('li');
-
-    searchInput.addEventListener('input', function () {
-      const filter = this.value.toLowerCase();
-      for (let i = 0; i < listItems.length; i++) {
-        const fileName = listItems[i].querySelector('.file-name').textContent.toLowerCase();
-        listItems[i].style.display = fileName.includes(filter) ? '' : 'none';
-      }
-    });
-  </script>
-
+        {% if files|length == 0 %}
+            <p class="text-gray-500 text-center">Aucun fichier disponible.</p>
+        {% endif %}
+    </div>
 </body>
 </html>
